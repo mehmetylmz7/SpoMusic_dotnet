@@ -1,0 +1,53 @@
+﻿@{
+    ViewData["Title"] = "Ayarlar";
+    var user = ViewBag.User as SpoMusic.Web.Models.UserProfileViewModel;
+    var isConnected = (bool)(ViewBag.IsConnected ?? false);
+}
+
+<div style="max-width: 700px; margin: 3rem auto; padding: 0 1.5rem;">
+    <h1 style="font-size: 2.2rem; font-weight: 800; margin-bottom: 0.5rem;">Hesap Ayarları</h1>
+    <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 2.5rem;">
+        Spotify bağlantınızı ve gizlilik tercihlerinizi buradan yönetebilirsiniz.
+    </p>
+
+    <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 2rem;">
+        <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 1.5rem;">Spotify Bağlantısı</h3>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-subtle);">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(29, 185, 84, 0.1); color: var(--spotify-green); display: flex; align-items: center; justify-content: center;">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.58 14.42c-.18.3-.57.4-.87.21-2.4-1.47-5.43-1.8-9-1-.34.08-.68-.13-.76-.47-.08-.34.13-.68.47-.76 3.92-.89 7.28-.52 9.95 1.15.3.19.4.58.21.87zm1.22-2.72c-.23.37-.72.49-1.09.26-2.75-1.69-6.94-2.18-10.19-1.19-.42.13-.86-.11-.99-.53-.13-.42.11-.86.53-.99 3.71-1.13 8.35-.58 11.48 1.36.38.23.49.72.26 1.09zm.11-2.83C14.62 8.9 9.17 8.72 6.01 9.68c-.5.15-1.04-.13-1.19-.63-.15-.5.13-1.04.63-1.19 3.66-1.11 9.69-.9 13.5 1.36.46.27.61.87.34 1.33-.27.46-.87.61-1.38.32z"/>
+                    </svg>
+                </div>
+                <div>
+                    <div style="font-weight: 700; font-size: 1rem;">
+                        @(isConnected ? "Spotify Hesabınız Bağlı" : "Spotify Bağlantısı Yok")
+                    </div>
+                    <div style="font-size: 0.85rem; color: var(--text-muted);">
+                        @(isConnected ? (user?.Email ?? "Aktif bağlantı") : "Eşleşme özelliklerini kullanmak için bağlanın.")
+                    </div>
+                </div>
+            </div>
+
+            @if (isConnected)
+            {
+                <form asp-controller="Settings" asp-action="Revoke" method="post">
+                    <button type="submit" class="btn-outline-custom" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.3);">
+                        Bağlantıyı Kes
+                    </button>
+                </form>
+            }
+            else
+            {
+                <a asp-controller="Auth" asp-action="Login" class="btn-spotify" style="font-size: 0.9rem;">
+                    Spotify'a Bağlan
+                </a>
+            }
+        </div>
+
+        <div style="margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;">
+            <strong>Gizlilik Notu:</strong> SpoMusic dinleme verilerinizi sadece müzik eşleşme skorlarını hesaplamak için kullanır. Verileriniz üçüncü taraflarla paylaşılmaz.
+        </div>
+    </div>
+</div>

@@ -1,0 +1,107 @@
+﻿@model SpoMusic.Web.Models.ProfileViewModel
+@{
+    ViewData["Title"] = "Müzik Profilim";
+    var avatar = !string.IsNullOrEmpty(Model.User?.Image) ? Model.User.Image : "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200";
+}
+
+<div class="matches-container">
+    @if (!string.IsNullOrEmpty(Model.StatusMessage))
+    {
+        <div style="background: rgba(29, 185, 84, 0.15); border: 1px solid rgba(29, 185, 84, 0.3); color: var(--spotify-green); padding: 1rem 1.5rem; border-radius: var(--radius-md); margin-bottom: 2rem; font-weight: 600;">
+            @Model.StatusMessage
+        </div>
+    }
+
+    <!-- Profile Header Card -->
+    <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 2.5rem;">
+        <div style="display: flex; align-items: center; gap: 1.5rem;">
+            <img src="@avatar" alt="Avatar" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid var(--spotify-green); object-fit: cover;" />
+            <div>
+                <h1 style="font-size: 1.8rem; font-weight: 800;">@(Model.User?.Name ?? "Demo Kullanıcı")</h1>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">@Model.User?.Email</p>
+                <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
+                    <span class="chip-artist">Spotify Bağlı</span>
+                </div>
+            </div>
+        </div>
+
+        <form asp-controller="Profile" asp-action="Sync" method="post">
+            <button type="submit" class="btn-spotify">
+                🔄 Spotify'ı Senkronize Et
+            </button>
+        </form>
+    </div>
+
+    <!-- Tabs: Top Tracks & History -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem;">
+        <!-- Top Tracks -->
+        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1.8rem;">
+            <h3 style="font-size: 1.3rem; font-weight: 700; margin-bottom: 1.2rem; display: flex; align-items: center; gap: 0.5rem;">
+                🔥 En Çok Dinlenenler
+            </h3>
+
+            @if (Model.TopTracks == null || Model.TopTracks.Count == 0)
+            {
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Henüz parça kaydedilmedi. Yukarıdan senkronize edin.</p>
+            }
+            else
+            {
+                <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+                    @foreach (var item in Model.TopTracks)
+                    {
+                        var trackImg = !string.IsNullOrEmpty(item.Track.ImageUrl) ? item.Track.ImageUrl : "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=100";
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.6rem; border-radius: var(--radius-sm); background: rgba(255,255,255,0.02); transition: background 0.2s;">
+                            <div style="display: flex; align-items: center; gap: 0.8rem;">
+                                <span style="font-weight: 700; color: var(--text-muted); width: 20px;">@item.Rank</span>
+                                <img src="@trackImg" alt="@item.Track.Name" style="width: 40px; height: 40px; border-radius: 6px; object-fit: cover;" />
+                                <div>
+                                    <div style="font-weight: 600; font-size: 0.9rem;">@item.Track.Name</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted);">@string.Join(", ", item.Track.Artists)</div>
+                                </div>
+                            </div>
+                            <button onclick="playPreview('@item.Track.PreviewUrl', '@item.Track.Name', '@string.Join(", ", item.Track.Artists)', '@trackImg')" style="background: none; border: none; cursor: pointer; color: var(--spotify-green); font-size: 1rem; padding: 0.3rem;">
+                                ▶
+                            </button>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <!-- Listening History -->
+        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1.8rem;">
+            <h3 style="font-size: 1.3rem; font-weight: 700; margin-bottom: 1.2rem; display: flex; align-items: center; gap: 0.5rem;">
+                🕒 Son Dinlenenler
+            </h3>
+
+            @if (Model.RecentHistory == null || Model.RecentHistory.Count == 0)
+            {
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Henüz dinleme geçmişi bulunamadı.</p>
+            }
+            else
+            {
+                <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+                    @foreach (var item in Model.RecentHistory)
+                    {
+                        var trackImg = !string.IsNullOrEmpty(item.Track.ImageUrl) ? item.Track.ImageUrl : "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=100";
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.6rem; border-radius: var(--radius-sm); background: rgba(255,255,255,0.02);">
+                            <div style="display: flex; align-items: center; gap: 0.8rem;">
+                                <img src="@trackImg" alt="@item.Track.Name" style="width: 40px; height: 40px; border-radius: 6px; object-fit: cover;" />
+                                <div>
+                                    <div style="font-weight: 600; font-size: 0.9rem;">@item.Track.Name</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted);">@string.Join(", ", item.Track.Artists)</div>
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 0.7rem; color: var(--text-muted);">@item.PlayedAt.ToString("dd MMM HH:mm")</div>
+                                <button onclick="playPreview('@item.Track.PreviewUrl', '@item.Track.Name', '@string.Join(", ", item.Track.Artists)', '@trackImg')" style="background: none; border: none; cursor: pointer; color: var(--spotify-green); font-size: 0.9rem;">
+                                    ▶
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>

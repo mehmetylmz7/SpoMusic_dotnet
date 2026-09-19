@@ -1,0 +1,6 @@
+﻿FROM mcr.microsoft.com/dotnet/aspnet:9.0-alpine
+WORKDIR /app
+COPY publish_web/ .
+ENV ASPNETCORE_URLS=http://+:3000
+EXPOSE 3000
+ENTRYPOINT ["dotnet", "SpoMusic.Web.dll"]

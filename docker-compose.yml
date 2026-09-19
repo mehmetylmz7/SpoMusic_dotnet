@@ -1,0 +1,57 @@
+﻿services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: spomusic-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: spomusic
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d spomusic"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: spomusic-api
+    restart: always
+    ports:
+      - "4000:4000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=spomusic;Username=postgres;Password=postgrespassword;SearchPath=public
+      - Spotify__ClientId=5c86c2f888064543b740f9d169417c85
+      - Spotify__ClientSecret=8e15b790588c42daac37b25dc6fd112d
+      - Spotify__RedirectUri=http://127.0.0.1:4000/auth/spotify/callback
+      - Jwt__Secret=spomusic-super-secret-production-key
+      - Client__FrontendUrl=http://localhost:3000/auth/callback
+      - Client__MobileDeepLink=spomusic://login
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: spomusic-web
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - SpoMusicApi__BaseUrl=http://api:4000
+      - SpoMusicApi__PublicUrl=http://localhost:4000
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:

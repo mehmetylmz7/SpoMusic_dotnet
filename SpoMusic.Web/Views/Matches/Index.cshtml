@@ -1,0 +1,97 @@
+﻿@model SpoMusic.Web.Models.MatchesViewModel
+@{
+    ViewData["Title"] = "Müzik Eşleşmeleri";
+}
+
+<div class="matches-container">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h1 style="font-size: 2.2rem; font-weight: 800; letter-spacing: -0.5px;">Müzik Eşleşmelerin</h1>
+            <p style="color: var(--text-muted); font-size: 0.95rem;">
+                Müzik zevklerinizin, dinleme geçmişinizin ve favori parçalarınızın en çok uyuştuğu kişiler.
+            </p>
+        </div>
+        <a asp-controller="Profile" asp-action="Index" class="btn-outline-custom">
+            Dinleme Geçmişim &rarr;
+        </a>
+    </div>
+
+    @if (Model.Matches == null || Model.Matches.Count == 0)
+    {
+        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 3rem; text-align: center;">
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Henüz kayıtlı başka eşleşme profili bulunamadı veya profiliniz henüz senkronize edilmedi.</p>
+            <a asp-controller="Profile" asp-action="Index" class="btn-spotify">Profilimi Senkronize Et</a>
+        </div>
+    }
+    else
+    {
+        @foreach (var match in Model.Matches)
+        {
+            var percent = (int)Math.Round(match.Score.Total * 100);
+            var avatar = !string.IsNullOrEmpty(match.User.Image) ? match.User.Image : "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200";
+
+            <div class="match-card">
+                <div class="match-header">
+                    <div class="user-meta">
+                        <img src="@avatar" alt="@match.User.Name" class="user-avatar" />
+                        <div class="user-info">
+                            <h4>@(match.User.Name ?? "Anonim Dinleyici")</h4>
+                            <p>@match.User.Email</p>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 1.5rem;">
+                        <button onclick="createBlend('@match.User.Id', '@(match.User.Name ?? "Arkadaşın")')" class="btn-outline-custom" style="padding: 0.5rem 1.1rem; font-size: 0.85rem;">
+                            🎧 Blend Miksi Oluştur
+                        </button>
+                        <div class="score-badge">
+                            <span class="score-value">%@percent</span>
+                            <span class="score-label">Müzik Uyumu</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ortak Sanatçılar -->
+                @if (match.CommonArtistNames != null && match.CommonArtistNames.Count > 0)
+                {
+                    <div>
+                        <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 600;">Ortak Sanatçılar</div>
+                        <div class="track-chips">
+                            @foreach (var artist in match.CommonArtistNames)
+                            {
+                                <span class="chip-artist">@artist</span>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <!-- Ortak Parçalar -->
+                @if (match.CommonTrackDetails != null && match.CommonTrackDetails.Count > 0)
+                {
+                    <div>
+                        <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 600;">Ortak Sevilen Parçalar (@match.CommonTrackDetails.Count)</div>
+                        <div class="track-chips">
+                            @foreach (var track in match.CommonTrackDetails)
+                            {
+                                <div class="chip-track">
+                                    <button onclick="playPreview('@track.SpotifyUrl', '@track.Name', '@track.Artist', '@track.ImageUrl')" style="background: none; border: none; cursor: pointer; color: var(--spotify-green); font-size: 0.9rem;">
+                                        ▶
+                                    </button>
+                                    <span><strong>@track.Name</strong> — @track.Artist</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <!-- Skor Dağılım İpuçları -->
+                <div style="display: flex; gap: 1rem; border-top: 1px solid var(--border-subtle); padding-top: 0.8rem; font-size: 0.75rem; color: var(--text-muted); flex-wrap: wrap;">
+                    <span>Ortak Parça: <strong>@match.Score.CommonTracks</strong></span>
+                    <span>Ortak Sanatçı: <strong>@match.Score.CommonArtists</strong></span>
+                    <span>Güncellik Skoru: <strong>%@((int)Math.Round(match.Score.RecencyScore * 100))</strong></span>
+                    <span>Zevk Benzerliği: <strong>%@((int)Math.Round(match.Score.TopSimilarity * 100))</strong></span>
+                </div>
+            </div>
+        }
+    }
+</div>
