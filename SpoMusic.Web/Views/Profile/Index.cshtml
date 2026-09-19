@@ -78,6 +78,15 @@
                             <p id="npAlbum" style="color: rgba(255,255,255,0.4); font-size: 0.8rem;">Albüm: @current.Album</p>
                         }
 
+                        @if (current.CoListeners != null && current.CoListeners.Count > 0)
+                        {
+                            var firstCo = current.CoListeners[0];
+                            <div class="co-listener-pill">
+                                <span>👥</span>
+                                <span><strong>@firstCo.Name</strong> @(current.CoListeners.Count > 1 ? $"ve {current.CoListeners.Count - 1} kişi daha" : "") ile şu anda aynı şarkıdasınız!</span>
+                            </div>
+                        }
+
                         <div class="playback-progress-bar">
                             <div id="npProgressFill" class="playback-progress-fill" style="width: @(pct)%;"></div>
                         </div>
@@ -187,7 +196,7 @@
                                     </div>
                                 </div>
                                 <div style="text-align: right;">
-                                    <div style="font-size: 0.7rem; color: var(--text-muted);">@item.PlayedAt.ToString("dd MMM HH:mm")</div>
+                                    <div style="font-size: 0.7rem; color: var(--text-muted);">@item.PlayedAt.ToUniversalTime().AddHours(3).ToString("dd MMM HH:mm")</div>
                                     <button onclick="playPreview('@item.Track.PreviewUrl', '@item.Track.Name', '@string.Join(", ", item.Track.Artists)', '@trackImg')" style="background: none; border: none; cursor: pointer; color: var(--spotify-green); font-size: 0.9rem;">
                                         ▶
                                     </button>
@@ -311,6 +320,12 @@
                             </div>
                             <p id="npArtists" style="color: var(--text-muted); font-size: 0.95rem; font-weight: 500;">${artists}</p>
                             ${data.album ? `<p id="npAlbum" style="color: rgba(255,255,255,0.4); font-size: 0.8rem;">Albüm: ${data.album}</p>` : ''}
+                            ${(data.coListeners && data.coListeners.length > 0) ? `
+                                <div class="co-listener-pill">
+                                    <span>👥</span>
+                                    <span><strong>${data.coListeners[0].name}</strong>${data.coListeners.length > 1 ? ' ve ' + (data.coListeners.length - 1) + ' kişi daha' : ''} ile şu anda aynı şarkıdasınız!</span>
+                                </div>
+                            ` : ''}
 
                             <div class="playback-progress-bar">
                                 <div id="npProgressFill" class="playback-progress-fill" style="width: ${pct}%;"></div>

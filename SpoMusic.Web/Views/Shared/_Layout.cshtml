@@ -74,7 +74,123 @@
     </div>
 
     <!-- Toast Message -->
-    <div id="toastBox" class="toast-box"></div>
+        <div id="toastBox" class="toast-box"></div>
+
+    <!-- Same Song Live Notification Toast Container -->
+    <div id="sameSongToastContainer" class="same-song-toast-container"></div>
+
+    @if (isLoggedIn)
+    {
+        <script>
+            (function() {
+                const dismissedMap = new Map();
+
+                function playSoftChime() {
+                    try {
+                        const AudioContext = window.AudioContext || window.webkitAudioContext;
+                        if (!AudioContext) return;
+                        const ctx = new AudioContext();
+                        
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+                        osc.frequency.exponentialRampToValueAtTime(880.00, ctx.currentTime + 0.15);
+
+                        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+
+                        osc.start();
+                        osc.stop(ctx.currentTime + 0.45);
+                    } catch (e) {}
+                }
+
+                function showSameSongToast(listener, trackName, artists) {
+                    const key = listener.userId + '_' + listener.trackId;
+                    const now = Date.now();
+                    if (dismissedMap.has(key) && (now - dismissedMap.get(key) < 120000)) {
+                        return;
+                    }
+
+                    const container = document.getElementById('sameSongToastContainer');
+                    if (!container) return;
+
+                    if (document.getElementById('toast_' + key)) return;
+
+                    playSoftChime();
+
+                    const toast = document.createElement('div');
+                    toast.id = 'toast_' + key;
+                    toast.className = 'same-song-toast';
+
+                    const avatar = listener.image || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120';
+                    const artistStr = (artists && artists.length) ? artists.join(', ') : (listener.artists ? listener.artists.join(', ') : '');
+
+                    toast.innerHTML = `
+                        <div class="same-song-header">
+                            <div class="same-song-title">
+                                <span class="pulse-dot"></span>
+                                <span>Aynı Şarkıdasınız!</span>
+                            </div>
+                            <span style="font-size: 0.72rem; color: var(--spotify-green); font-weight: 600;">Şu Anda Canlı</span>
+                        </div>
+                        <div class="same-song-body">
+                            <img src="${avatar}" alt="${listener.name}" class="same-song-avatar" />
+                            <div class="same-song-info">
+                                <div class="same-song-user">${listener.name}</div>
+                                <div class="same-song-text">
+                                    seninle birlikte <span class="same-song-track">${trackName}</span> dinliyor! 🎧
+                                </div>
+                            </div>
+                        </div>
+                        <div class="same-song-actions">
+                            <a href="/profile?userId=${encodeURIComponent(listener.userId)}" class="btn-toast-profile">
+                                Profili İncele ➔
+                            </a>
+                            <button onclick="dismissSameSongToast('${key}')" class="btn-toast-close">
+                                Kapat
+                            </button>
+                        </div>
+                    `;
+
+                    container.appendChild(toast);
+
+                    setTimeout(() => {
+                        dismissSameSongToast(key);
+                    }, 16000);
+                }
+
+                window.dismissSameSongToast = function(key) {
+                    dismissedMap.set(key, Date.now());
+                    const toast = document.getElementById('toast_' + key);
+                    if (toast) {
+                        toast.classList.add('fade-out');
+                        setTimeout(() => toast.remove(), 350);
+                    }
+                };
+
+                async function checkSameSongListeners() {
+                    try {
+                        const res = await fetch('/live/listener-sync');
+                        if (!res.ok) return;
+                        const data = await res.json();
+                        if (data.isPlaying && data.coListeners && data.coListeners.length > 0) {
+                            for (const listener of data.coListeners) {
+                                showSameSongToast(listener, data.trackName || listener.trackName, data.artists || listener.artists);
+                            }
+                        }
+                    } catch (e) {}
+                }
+
+                setTimeout(checkSameSongListeners, 2000);
+                setInterval(checkSameSongListeners, 6000);
+            })();
+        </script>
+    }
 
     <footer>
         <p>&copy; @DateTime.Now.Year SpoMusic — Müzik Tabanlı Akıllı Eşleşme Platformu</p>

@@ -59,6 +59,33 @@ public class ProfileController : Controller
         });
     }
 
+    [HttpGet("live/listener-sync")]
+    public async Task<IActionResult> ListenerSync()
+    {
+        var token = Request.Cookies["spomusic_token"];
+        if (string.IsNullOrEmpty(token))
+        {
+            return Json(new { isPlaying = false, coListeners = new List<CoListenerViewModel>() });
+        }
+
+        var user = await _api.GetCurrentUserAsync(token);
+        if (user == null)
+        {
+            return Json(new { isPlaying = false, coListeners = new List<CoListenerViewModel>() });
+        }
+
+        var current = await _api.GetCurrentlyPlayingAsync(token, user.Id);
+        return Json(new
+        {
+            isPlaying = current?.IsPlaying ?? false,
+            trackId = current?.TrackId,
+            trackName = current?.Name,
+            artists = current?.Artists ?? new List<string>(),
+            imageUrl = current?.ImageUrl,
+            coListeners = current?.CoListeners ?? new List<CoListenerViewModel>()
+        });
+    }
+
     [HttpPost("profile/sync")]
     public async Task<IActionResult> Sync()
     {

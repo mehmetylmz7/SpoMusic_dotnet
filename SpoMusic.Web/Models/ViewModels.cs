@@ -56,6 +56,17 @@ public record HistoryItemViewModel(
     [property: JsonPropertyName("track")] TrackDetailViewModel Track
 );
 
+public record CoListenerViewModel(
+    [property: JsonPropertyName("userId")] string UserId,
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("image")] string? Image,
+    [property: JsonPropertyName("trackId")] string TrackId,
+    [property: JsonPropertyName("trackName")] string TrackName,
+    [property: JsonPropertyName("artists")] List<string> Artists,
+    [property: JsonPropertyName("imageUrl")] string? ImageUrl,
+    [property: JsonPropertyName("startedTogetherAt")] DateTime StartedTogetherAt
+);
+
 public record CurrentlyPlayingViewModel(
     [property: JsonPropertyName("isPlaying")] bool IsPlaying,
     [property: JsonPropertyName("trackId")] string? TrackId,
@@ -67,7 +78,8 @@ public record CurrentlyPlayingViewModel(
     [property: JsonPropertyName("spotifyUrl")] string? SpotifyUrl,
     [property: JsonPropertyName("progressMs")] int ProgressMs,
     [property: JsonPropertyName("durationMs")] int DurationMs,
-    [property: JsonPropertyName("deviceName")] string? DeviceName
+    [property: JsonPropertyName("deviceName")] string? DeviceName,
+    [property: JsonPropertyName("coListeners")] List<CoListenerViewModel>? CoListeners = null
 );
 
 public class ProfileViewModel

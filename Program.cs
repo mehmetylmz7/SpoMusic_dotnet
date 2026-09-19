@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -24,6 +24,7 @@ builder.Services.AddHttpClient("SpotifyApi");
 
 // 3. Application Services
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddSingleton<IActivePlaybackTracker, ActivePlaybackTracker>();
 builder.Services.AddScoped<ISpotifyService, SpotifyService>();
 builder.Services.AddScoped<IMatchingService, MatchingService>();
 

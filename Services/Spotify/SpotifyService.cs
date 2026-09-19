@@ -14,13 +14,15 @@ public class SpotifyService : ISpotifyService
     private readonly IConfiguration _config;
     private readonly HttpClient _http;
     private readonly ILogger<SpotifyService> _logger;
+    private readonly IActivePlaybackTracker _playbackTracker;
 
-    public SpotifyService(AppDbContext db, IConfiguration config, IHttpClientFactory httpClientFactory, ILogger<SpotifyService> logger)
+    public SpotifyService(AppDbContext db, IConfiguration config, IHttpClientFactory httpClientFactory, ILogger<SpotifyService> logger, IActivePlaybackTracker playbackTracker)
     {
         _db = db;
         _config = config;
         _http = httpClientFactory.CreateClient("SpotifyApi");
         _logger = logger;
+        _playbackTracker = playbackTracker;
     }
 
     public async Task<string> GetUserTokenAsync(string userId)
@@ -212,6 +214,46 @@ public class SpotifyService : ISpotifyService
                 }
             }
 
+            List<CoListenerDto> coListeners = new();
+            if (isPlaying && !string.IsNullOrEmpty(trackId))
+            {
+                try
+                {
+                    var user = await _db.Users.FindAsync(userId);
+                    _playbackTracker.RecordActivePlayback(new ActiveUserPlayback(
+                        UserId: userId,
+                        UserName: user?.Name ?? "Müziksever",
+                        UserImage: user?.Image,
+                        TrackId: trackId,
+                        TrackName: name ?? "Bilinmeyen Parça",
+                        Artists: artists,
+                        ImageUrl: imageUrl,
+                        LastActiveUtc: DateTime.UtcNow
+                    ));
+
+                    coListeners = _playbackTracker.GetCoListeners(userId, trackId)
+                        .Select(c => new CoListenerDto(
+                            UserId: c.UserId,
+                            Name: c.UserName,
+                            Image: c.UserImage,
+                            TrackId: c.TrackId,
+                            TrackName: c.TrackName,
+                            Artists: c.Artists,
+                            ImageUrl: c.ImageUrl,
+                            StartedTogetherAt: c.LastActiveUtc
+                        ))
+                        .ToList();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to record active playback or co-listeners for user {UserId}", userId);
+                }
+            }
+            else
+            {
+                _playbackTracker.RemovePlayback(userId);
+            }
+
             return new CurrentlyPlayingDto(
                 IsPlaying: isPlaying,
                 TrackId: trackId,
@@ -223,7 +265,8 @@ public class SpotifyService : ISpotifyService
                 SpotifyUrl: spotifyUrl,
                 ProgressMs: progressMs,
                 DurationMs: durationMs,
-                DeviceName: deviceName
+                DeviceName: deviceName,
+                CoListeners: coListeners
             );
         }
         catch (Exception ex)
