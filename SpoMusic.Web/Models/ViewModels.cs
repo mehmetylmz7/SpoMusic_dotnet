@@ -56,9 +56,24 @@ public record HistoryItemViewModel(
     [property: JsonPropertyName("track")] TrackDetailViewModel Track
 );
 
+public record CurrentlyPlayingViewModel(
+    [property: JsonPropertyName("isPlaying")] bool IsPlaying,
+    [property: JsonPropertyName("trackId")] string? TrackId,
+    [property: JsonPropertyName("name")] string? Name,
+    [property: JsonPropertyName("artists")] List<string> Artists,
+    [property: JsonPropertyName("album")] string? Album,
+    [property: JsonPropertyName("imageUrl")] string? ImageUrl,
+    [property: JsonPropertyName("previewUrl")] string? PreviewUrl,
+    [property: JsonPropertyName("spotifyUrl")] string? SpotifyUrl,
+    [property: JsonPropertyName("progressMs")] int ProgressMs,
+    [property: JsonPropertyName("durationMs")] int DurationMs,
+    [property: JsonPropertyName("deviceName")] string? DeviceName
+);
+
 public class ProfileViewModel
 {
     public UserProfileViewModel? User { get; set; }
+    public CurrentlyPlayingViewModel? CurrentlyPlaying { get; set; }
     public List<TopTrackViewModel> TopTracks { get; set; } = new();
     public List<HistoryItemViewModel> RecentHistory { get; set; } = new();
     public string? StatusMessage { get; set; }

@@ -45,6 +45,23 @@ public class SpotifyController : ControllerBase
         }
     }
 
+    [HttpGet("current")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetCurrentlyPlaying([FromQuery] string? userId)
+    {
+        var targetUserId = !string.IsNullOrEmpty(userId)
+            ? userId
+            : (User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub"));
+
+        if (string.IsNullOrEmpty(targetUserId))
+        {
+            return Unauthorized(new { message = "Authentication required or 'userId' parameter needed" });
+        }
+
+        var current = await _spotifyService.GetCurrentlyPlayingAsync(targetUserId);
+        return Ok(current ?? new CurrentlyPlayingDto(false, null, null, new List<string>(), null, null, null, null, 0, 0, null));
+    }
+
     [HttpGet("history")]
     [AllowAnonymous]
     public async Task<IActionResult> GetHistory([FromQuery] string? userId)

@@ -137,6 +137,35 @@ public class SpoMusicApiClient : ISpoMusicApiClient
         }
     }
 
+    public async Task<CurrentlyPlayingViewModel?> GetCurrentlyPlayingAsync(string? token = null, string? userId = null)
+    {
+        try
+        {
+            var url = $"{_baseUrl}/spotify/current";
+            if (!string.IsNullOrEmpty(userId))
+            {
+                url += $"?userId={Uri.EscapeDataString(userId)}";
+            }
+
+            using var req = new HttpRequestMessage(HttpMethod.Get, url);
+            if (!string.IsNullOrEmpty(token))
+            {
+                req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var res = await _http.SendAsync(req);
+            if (!res.IsSuccessStatusCode) return null;
+
+            var json = await res.Content.ReadAsStringAsync();
+            return JsonSerializer.Deserialize<CurrentlyPlayingViewModel>(json);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "GetCurrentlyPlaying failed");
+            return null;
+        }
+    }
+
     public async Task<List<TopTrackViewModel>> GetTopTracksAsync(string? token = null, string? userId = null)
     {
         try

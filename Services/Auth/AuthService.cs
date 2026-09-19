@@ -35,7 +35,7 @@ public class AuthService : IAuthService
     {
         var clientId = _config["Spotify:ClientId"] ?? "";
         var effectiveRedirectUri = redirectUri ?? _config["Spotify:RedirectUri"] ?? "http://localhost:4000/auth/spotify/callback";
-        var scopes = Uri.EscapeDataString("user-read-email user-read-private user-top-read user-read-recently-played");
+        var scopes = Uri.EscapeDataString("user-read-email user-read-private user-top-read user-read-recently-played user-read-currently-playing user-read-playback-state");
 
         var rawState = Guid.NewGuid().ToString("N");
         var state = string.Equals(platform, "mobile", StringComparison.OrdinalIgnoreCase)
@@ -268,3 +268,4 @@ public class AuthService : IAuthService
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }
+

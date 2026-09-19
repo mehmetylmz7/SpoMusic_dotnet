@@ -2,6 +2,8 @@
 @{
     ViewData["Title"] = "Müzik Profilim";
     var avatar = !string.IsNullOrEmpty(Model.User?.Image) ? Model.User.Image : "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200";
+    var current = Model.CurrentlyPlaying;
+    var isPlaying = current != null && current.IsPlaying;
 }
 
 <div class="matches-container">
@@ -13,7 +15,7 @@
     }
 
     <!-- Profile Header Card -->
-    <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 2.5rem;">
+    <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 2rem;">
         <div style="display: flex; align-items: center; gap: 1.5rem;">
             <img src="@avatar" alt="Avatar" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid var(--spotify-green); object-fit: cover;" />
             <div>
@@ -30,6 +32,94 @@
                 🔄 Spotify'ı Senkronize Et
             </button>
         </form>
+    </div>
+
+    <!-- Currently Playing Live Card -->
+    <div id="nowPlayingCard" class="now-playing-card @(isPlaying ? "" : "idle")">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+                <span class="pulse-dot"></span>
+                <span style="font-size: 0.8rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--spotify-green);">
+                    @(isPlaying ? "Şu Anda Dinleniyor" : "Canlı Çalma Durumu")
+                </span>
+                <div id="equalizerEl" class="equalizer" style="display: @(isPlaying ? "inline-flex" : "none");">
+                    <span class="equalizer-bar"></span>
+                    <span class="equalizer-bar"></span>
+                    <span class="equalizer-bar"></span>
+                    <span class="equalizer-bar"></span>
+                </div>
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.4rem;">
+                <span id="deviceBadge">@(isPlaying && !string.IsNullOrEmpty(current?.DeviceName) ? $"🎧 {current.DeviceName}" : "Spotify Canlı Akış")</span>
+            </div>
+        </div>
+
+        <div id="nowPlayingContent">
+            @if (isPlaying && current != null)
+            {
+                var trackImg = !string.IsNullOrEmpty(current.ImageUrl) ? current.ImageUrl : "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=120";
+                var duration = current.DurationMs;
+                var progress = current.ProgressMs;
+                var pct = duration > 0 ? (progress * 100 / duration) : 0;
+                var progressSec = progress / 1000;
+                var durationSec = duration / 1000;
+                var curTimeStr = $"{progressSec / 60:D2}:{progressSec % 60:D2}";
+                var durTimeStr = $"{durationSec / 60:D2}:{durationSec % 60:D2}";
+
+                <div style="display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;">
+                    <img id="npImage" src="@trackImg" alt="@current.Name" style="width: 76px; height: 76px; border-radius: 12px; object-fit: cover; box-shadow: 0 8px 25px rgba(0,0,0,0.6);" />
+                    <div style="flex: 1; min-width: 240px;">
+                        <div style="display: flex; align-items: center; gap: 0.6rem;">
+                            <h3 id="npTrackName" style="font-size: 1.3rem; font-weight: 800; color: #fff; margin-bottom: 0.2rem;">@current.Name</h3>
+                        </div>
+                        <p id="npArtists" style="color: var(--text-muted); font-size: 0.95rem; font-weight: 500;">@string.Join(", ", current.Artists)</p>
+                        @if (!string.IsNullOrEmpty(current.Album))
+                        {
+                            <p id="npAlbum" style="color: rgba(255,255,255,0.4); font-size: 0.8rem;">Albüm: @current.Album</p>
+                        }
+
+                        <div class="playback-progress-bar">
+                            <div id="npProgressFill" class="playback-progress-fill" style="width: @(pct)%;"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted);">
+                            <span id="npTimeCurrent">@curTimeStr</span>
+                            <span id="npTimeDuration">@durTimeStr</span>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 0.8rem;">
+                        @if (!string.IsNullOrEmpty(current.PreviewUrl))
+                        {
+                            <button onclick="playPreview('@current.PreviewUrl', '@current.Name', '@string.Join(", ", current.Artists)', '@trackImg')" class="btn-spotify" style="padding: 0.6rem 1rem; font-size: 0.85rem;">
+                                ▶ Önizle
+                            </button>
+                        }
+                        @if (!string.IsNullOrEmpty(current.SpotifyUrl))
+                        {
+                            <a href="@current.SpotifyUrl" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.6rem 1rem; border-radius: var(--radius-sm); background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); color: #fff; text-decoration: none; font-size: 0.85rem; font-weight: 600;">
+                                Spotify'da Dinle ↗
+                            </a>
+                        }
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div style="display: flex; align-items: center; gap: 1.2rem; padding: 0.5rem 0;">
+                    <div style="width: 54px; height: 54px; border-radius: 12px; background: rgba(255,255,255,0.04); display: flex; align-items: center; justify-content: center; color: var(--text-muted);">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.58 14.42c-.18.3-.57.4-.87.21-2.4-1.47-5.43-1.8-9-1-.34.08-.68-.13-.76-.47-.08-.34.13-.68.47-.76 3.92-.89 7.28-.52 9.95 1.15.3.19.4.58.21.87zm1.22-2.72c-.23.37-.72.49-1.09.26-2.75-1.69-6.94-2.18-10.19-1.19-.42.13-.86-.11-.99-.53-.13-.42.11-.86.53-.99 3.71-1.13 8.35-.58 11.48 1.36.38.23.49.72.26 1.09zm.11-2.83C14.62 8.9 9.17 8.72 6.01 9.68c-.5.15-1.04-.13-1.19-.63-.15-.5.13-1.04.63-1.19 3.66-1.11 9.69-.9 13.5 1.36.46.27.61.87.34 1.33-.27.46-.87.61-1.38.32z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div style="font-size: 1rem; font-weight: 700; color: #fff;">Şu anda çalan şarkı yok</div>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">
+                            Spotify uygulamanızda bir parça başlattığınızda burada canlı çalma durumunuz ve ilerleme çubuğu otomatik olarak görüntülenecektir.
+                        </p>
+                    </div>
+                </div>
+            }
+        </div>
     </div>
 
     <!-- Tabs: Top Tracks & History -->
@@ -105,3 +195,112 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+<script>
+    let currentProgressMs = @(current?.ProgressMs ?? 0);
+    let currentDurationMs = @(current?.DurationMs ?? 0);
+    let currentIsPlaying = @(isPlaying ? "true" : "false");
+
+    function formatTime(ms) {
+        const totalSec = Math.floor(ms / 1000);
+        const mins = Math.floor(totalSec / 60);
+        const secs = totalSec % 60;
+        return String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+    }
+
+    // Advance progress locally every second if playing
+    setInterval(() => {
+        if (currentIsPlaying && currentDurationMs > 0) {
+            currentProgressMs += 1000;
+            if (currentProgressMs > currentDurationMs) {
+                currentProgressMs = currentDurationMs;
+            }
+            const pct = (currentProgressMs / currentDurationMs) * 100;
+            const fill = document.getElementById('npProgressFill');
+            const timeCur = document.getElementById('npTimeCurrent');
+            if (fill) fill.style.width = pct + '%';
+            if (timeCur) timeCur.textContent = formatTime(currentProgressMs);
+        }
+    }, 1000);
+
+    // Poll live status from server every 8 seconds
+    async function checkLivePlayback() {
+        try {
+            const res = await fetch('/profile/current-live?userId=@(Model.User?.Id)');
+            if (!res.ok) return;
+            const data = await res.json();
+            
+            const card = document.getElementById('nowPlayingCard');
+            const eq = document.getElementById('equalizerEl');
+            const container = document.getElementById('nowPlayingContent');
+            const devBadge = document.getElementById('deviceBadge');
+
+            if (data && data.isPlaying) {
+                currentIsPlaying = true;
+                currentProgressMs = data.progressMs || 0;
+                currentDurationMs = data.durationMs || 0;
+                
+                if (card) card.classList.remove('idle');
+                if (eq) eq.style.display = 'inline-flex';
+                if (devBadge) devBadge.textContent = data.deviceName ? '🎧 ' + data.deviceName : 'Spotify Canlı Akış';
+
+                const pct = currentDurationMs > 0 ? (currentProgressMs / currentDurationMs) * 100 : 0;
+                const trackImg = data.imageUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=120';
+                const artists = (data.artists || []).join(', ');
+
+                container.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;">
+                        <img id="npImage" src="${trackImg}" alt="${data.name}" style="width: 76px; height: 76px; border-radius: 12px; object-fit: cover; box-shadow: 0 8px 25px rgba(0,0,0,0.6);" />
+                        <div style="flex: 1; min-width: 240px;">
+                            <div style="display: flex; align-items: center; gap: 0.6rem;">
+                                <h3 id="npTrackName" style="font-size: 1.3rem; font-weight: 800; color: #fff; margin-bottom: 0.2rem;">${data.name}</h3>
+                            </div>
+                            <p id="npArtists" style="color: var(--text-muted); font-size: 0.95rem; font-weight: 500;">${artists}</p>
+                            ${data.album ? `<p id="npAlbum" style="color: rgba(255,255,255,0.4); font-size: 0.8rem;">Albüm: ${data.album}</p>` : ''}
+
+                            <div class="playback-progress-bar">
+                                <div id="npProgressFill" class="playback-progress-fill" style="width: ${pct}%;"></div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted);">
+                                <span id="npTimeCurrent">${formatTime(currentProgressMs)}</span>
+                                <span id="npTimeDuration">${formatTime(currentDurationMs)}</span>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; align-items: center; gap: 0.8rem;">
+                            ${data.previewUrl ? `<button onclick="playPreview('${data.previewUrl}', '${data.name}', '${artists}', '${trackImg}')" class="btn-spotify" style="padding: 0.6rem 1rem; font-size: 0.85rem;">▶ Önizle</button>` : ''}
+                            ${data.spotifyUrl ? `<a href="${data.spotifyUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.6rem 1rem; border-radius: var(--radius-sm); background: rgba(255,255,255,0.06); border: 1px solid var(--border-subtle); color: #fff; text-decoration: none; font-size: 0.85rem; font-weight: 600;">Spotify'da Dinle ↗</a>` : ''}
+                        </div>
+                    </div>
+                `;
+            } else {
+                currentIsPlaying = false;
+                if (card) card.classList.add('idle');
+                if (eq) eq.style.display = 'none';
+                if (devBadge) devBadge.textContent = 'Dinlemiyor';
+
+                container.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 1.2rem; padding: 0.5rem 0;">
+                        <div style="width: 54px; height: 54px; border-radius: 12px; background: rgba(255,255,255,0.04); display: flex; align-items: center; justify-content: center; color: var(--text-muted);">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.58 14.42c-.18.3-.57.4-.87.21-2.4-1.47-5.43-1.8-9-1-.34.08-.68-.13-.76-.47-.08-.34.13-.68.47-.76 3.92-.89 7.28-.52 9.95 1.15.3.19.4.58.21.87zm1.22-2.72c-.23.37-.72.49-1.09.26-2.75-1.69-6.94-2.18-10.19-1.19-.42.13-.86-.11-.99-.53-.13-.42.11-.86.53-.99 3.71-1.13 8.35-.58 11.48 1.36.38.23.49.72.26 1.09zm.11-2.83C14.62 8.9 9.17 8.72 6.01 9.68c-.5.15-1.04-.13-1.19-.63-.15-.5.13-1.04.63-1.19 3.66-1.11 9.69-.9 13.5 1.36.46.27.61.87.34 1.33-.27.46-.87.61-1.38.32z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div style="font-size: 1rem; font-weight: 700; color: #fff;">Şu anda çalan şarkı yok</div>
+                            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">
+                                Spotify uygulamanızda bir parça başlattığınızda burada canlı çalma durumunuz ve ilerleme çubuğu otomatik olarak görüntülenecektir.
+                            </p>
+                        </div>
+                    </div>
+                `;
+            }
+        } catch (e) {
+            // Silently retry on next poll
+        }
+    }
+
+    setInterval(checkLivePlayback, 8000);
+</script>
+}

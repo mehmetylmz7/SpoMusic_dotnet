@@ -11,6 +11,7 @@ public interface ISpoMusicApiClient
     Task<List<MatchItemViewModel>> GetMatchesAsync(string? token = null, string? userId = null);
     Task<List<TopTrackViewModel>> GetTopTracksAsync(string? token = null, string? userId = null);
     Task<List<HistoryItemViewModel>> GetHistoryAsync(string? token = null, string? userId = null);
+    Task<CurrentlyPlayingViewModel?> GetCurrentlyPlayingAsync(string? token = null, string? userId = null);
     Task<bool> SyncUserDataAsync(string token);
     Task<string?> CreateBlendAsync(string targetUserId, string token);
 }

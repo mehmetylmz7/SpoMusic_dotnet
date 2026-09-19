@@ -83,6 +83,111 @@ public class SpotifyService : ISpotifyService
         return accessToken;
     }
 
+    public async Task<CurrentlyPlayingDto?> GetCurrentlyPlayingAsync(string userId)
+    {
+        try
+        {
+            var accessToken = await GetUserTokenAsync(userId);
+            using var req = new HttpRequestMessage(HttpMethod.Get, "https://api.spotify.com/v1/me/player/currently-playing");
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+            var res = await _http.SendAsync(req);
+            if (res.StatusCode == System.Net.HttpStatusCode.NoContent)
+            {
+                return new CurrentlyPlayingDto(false, null, null, new List<string>(), null, null, null, null, 0, 0, null);
+            }
+
+            if (!res.IsSuccessStatusCode)
+            {
+                return new CurrentlyPlayingDto(false, null, null, new List<string>(), null, null, null, null, 0, 0, null);
+            }
+
+            var body = await res.Content.ReadAsStringAsync();
+            if (string.IsNullOrWhiteSpace(body))
+            {
+                return new CurrentlyPlayingDto(false, null, null, new List<string>(), null, null, null, null, 0, 0, null);
+            }
+
+            using var doc = JsonDocument.Parse(body);
+            var root = doc.RootElement;
+
+            var isPlaying = root.TryGetProperty("is_playing", out var ip) && ip.GetBoolean();
+            var progressMs = root.TryGetProperty("progress_ms", out var pms) ? pms.GetInt32() : 0;
+
+            if (!root.TryGetProperty("item", out var item) || item.ValueKind != JsonValueKind.Object)
+            {
+                return new CurrentlyPlayingDto(isPlaying, null, null, new List<string>(), null, null, null, null, progressMs, 0, null);
+            }
+
+            var trackId = item.TryGetProperty("id", out var idEl) ? idEl.GetString() : null;
+            var name = item.TryGetProperty("name", out var nEl) ? nEl.GetString() : "Bilinmeyen Parça";
+            var durationMs = item.TryGetProperty("duration_ms", out var dmEl) ? dmEl.GetInt32() : 0;
+
+            var artists = new List<string>();
+            if (item.TryGetProperty("artists", out var artistsEl))
+            {
+                foreach (var a in artistsEl.EnumerateArray())
+                {
+                    if (a.TryGetProperty("name", out var an) && an.GetString() != null)
+                    {
+                        artists.Add(an.GetString()!);
+                    }
+                }
+            }
+
+            string? albumName = null;
+            string? imageUrl = null;
+            if (item.TryGetProperty("album", out var albumEl))
+            {
+                if (albumEl.TryGetProperty("name", out var abn))
+                {
+                    albumName = abn.GetString();
+                }
+                if (albumEl.TryGetProperty("images", out var imgEl) && imgEl.GetArrayLength() > 0)
+                {
+                    imageUrl = imgEl[0].GetProperty("url").GetString();
+                }
+            }
+
+            string? spotifyUrl = null;
+            if (item.TryGetProperty("external_urls", out var extUrls) && extUrls.TryGetProperty("spotify", out var su))
+            {
+                spotifyUrl = su.GetString();
+            }
+
+            string? previewUrl = null;
+            if (item.TryGetProperty("preview_url", out var pu))
+            {
+                previewUrl = pu.GetString();
+            }
+
+            string? deviceName = null;
+            if (root.TryGetProperty("device", out var devEl) && devEl.TryGetProperty("name", out var dn))
+            {
+                deviceName = dn.GetString();
+            }
+
+            return new CurrentlyPlayingDto(
+                IsPlaying: isPlaying,
+                TrackId: trackId,
+                Name: name,
+                Artists: artists,
+                Album: albumName,
+                ImageUrl: imageUrl,
+                PreviewUrl: previewUrl,
+                SpotifyUrl: spotifyUrl,
+                ProgressMs: progressMs,
+                DurationMs: durationMs,
+                DeviceName: deviceName
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "GetCurrentlyPlayingAsync encountered an error for user {UserId}", userId);
+            return new CurrentlyPlayingDto(false, null, null, new List<string>(), null, null, null, null, 0, 0, null);
+        }
+    }
+
     public async Task<SyncResponseDto> SyncUserDataAsync(string userId)
     {
         var accessToken = await GetUserTokenAsync(userId);
