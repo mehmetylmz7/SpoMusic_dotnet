@@ -167,6 +167,51 @@ public class SpotifyService : ISpotifyService
                 deviceName = dn.GetString();
             }
 
+            // Anında Son Dinlenenlere Kaydetme (Şarkı açıldığı anda bitmesini beklemeden geçmişe ekler)
+            if (isPlaying && !string.IsNullOrEmpty(trackId))
+            {
+                try
+                {
+                    var lastHistory = await _db.ListeningHistories
+                        .Where(lh => lh.UserId == userId)
+                        .OrderByDescending(lh => lh.PlayedAt)
+                        .FirstOrDefaultAsync();
+
+                    if (lastHistory == null || lastHistory.TrackId != trackId)
+                    {
+                        var trackExists = await _db.Tracks.AnyAsync(t => t.SpotifyId == trackId);
+                        if (!trackExists)
+                        {
+                            _db.Tracks.Add(new Track
+                            {
+                                SpotifyId = trackId,
+                                Name = name ?? "Bilinmeyen Parça",
+                                Artists = artists,
+                                Album = albumName ?? "",
+                                DurationMs = durationMs,
+                                ImageUrl = imageUrl,
+                                Url = spotifyUrl ?? "",
+                                PreviewUrl = previewUrl,
+                                CreatedAt = DateTime.UtcNow
+                            });
+                            await _db.SaveChangesAsync();
+                        }
+
+                        _db.ListeningHistories.Add(new ListeningHistory
+                        {
+                            UserId = userId,
+                            TrackId = trackId,
+                            PlayedAt = DateTime.UtcNow
+                        });
+                        await _db.SaveChangesAsync();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Auto-recording listening history failed for user {UserId}", userId);
+                }
+            }
+
             return new CurrentlyPlayingDto(
                 IsPlaying: isPlaying,
                 TrackId: trackId,

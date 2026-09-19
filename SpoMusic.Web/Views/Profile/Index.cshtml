@@ -160,38 +160,43 @@
 
         <!-- Listening History -->
         <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1.8rem;">
-            <h3 style="font-size: 1.3rem; font-weight: 700; margin-bottom: 1.2rem; display: flex; align-items: center; gap: 0.5rem;">
-                🕒 Son Dinlenenler
-            </h3>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.2rem;">
+                <h3 style="font-size: 1.3rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;">
+                    🕒 Son Dinlenenler
+                </h3>
+                <span style="font-size: 0.75rem; color: var(--spotify-green); font-weight: 600;">● Canlı Kayıt Aktif</span>
+            </div>
 
-            @if (Model.RecentHistory == null || Model.RecentHistory.Count == 0)
-            {
-                <p style="color: var(--text-muted); font-size: 0.9rem;">Henüz dinleme geçmişi bulunamadı.</p>
-            }
-            else
-            {
-                <div style="display: flex; flex-direction: column; gap: 0.8rem;">
-                    @foreach (var item in Model.RecentHistory)
-                    {
-                        var trackImg = !string.IsNullOrEmpty(item.Track.ImageUrl) ? item.Track.ImageUrl : "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=100";
-                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.6rem; border-radius: var(--radius-sm); background: rgba(255,255,255,0.02);">
-                            <div style="display: flex; align-items: center; gap: 0.8rem;">
-                                <img src="@trackImg" alt="@item.Track.Name" style="width: 40px; height: 40px; border-radius: 6px; object-fit: cover;" />
-                                <div>
-                                    <div style="font-weight: 600; font-size: 0.9rem;">@item.Track.Name</div>
-                                    <div style="font-size: 0.75rem; color: var(--text-muted);">@string.Join(", ", item.Track.Artists)</div>
+            <div id="recentHistoryContainer">
+                @if (Model.RecentHistory == null || Model.RecentHistory.Count == 0)
+                {
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">Henüz dinleme geçmişi bulunamadı.</p>
+                }
+                else
+                {
+                    <div id="recentHistoryList" style="display: flex; flex-direction: column; gap: 0.8rem;">
+                        @foreach (var item in Model.RecentHistory)
+                        {
+                            var trackImg = !string.IsNullOrEmpty(item.Track.ImageUrl) ? item.Track.ImageUrl : "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=100";
+                            <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.6rem; border-radius: var(--radius-sm); background: rgba(255,255,255,0.02);">
+                                <div style="display: flex; align-items: center; gap: 0.8rem;">
+                                    <img src="@trackImg" alt="@item.Track.Name" style="width: 40px; height: 40px; border-radius: 6px; object-fit: cover;" />
+                                    <div>
+                                        <div style="font-weight: 600; font-size: 0.9rem;">@item.Track.Name</div>
+                                        <div style="font-size: 0.75rem; color: var(--text-muted);">@string.Join(", ", item.Track.Artists)</div>
+                                    </div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 0.7rem; color: var(--text-muted);">@item.PlayedAt.ToString("dd MMM HH:mm")</div>
+                                    <button onclick="playPreview('@item.Track.PreviewUrl', '@item.Track.Name', '@string.Join(", ", item.Track.Artists)', '@trackImg')" style="background: none; border: none; cursor: pointer; color: var(--spotify-green); font-size: 0.9rem;">
+                                        ▶
+                                    </button>
                                 </div>
                             </div>
-                            <div style="text-align: right;">
-                                <div style="font-size: 0.7rem; color: var(--text-muted);">@item.PlayedAt.ToString("dd MMM HH:mm")</div>
-                                <button onclick="playPreview('@item.Track.PreviewUrl', '@item.Track.Name', '@string.Join(", ", item.Track.Artists)', '@trackImg')" style="background: none; border: none; cursor: pointer; color: var(--spotify-green); font-size: 0.9rem;">
-                                    ▶
-                                </button>
-                            </div>
-                        </div>
-                    }
-                </div>
-            }
+                        }
+                    </div>
+                }
+            </div>
         </div>
     </div>
 </div>
@@ -201,6 +206,7 @@
     let currentProgressMs = @(current?.ProgressMs ?? 0);
     let currentDurationMs = @(current?.DurationMs ?? 0);
     let currentIsPlaying = @(isPlaying ? "true" : "false");
+    let lastHistoryTopTrackId = '@(Model.RecentHistory?.FirstOrDefault()?.Track.SpotifyId ?? "")';
 
     function formatTime(ms) {
         const totalSec = Math.floor(ms / 1000);
@@ -224,12 +230,59 @@
         }
     }, 1000);
 
-    // Poll live status from server every 8 seconds
+    // Update history list in real time
+    function updateHistoryList(items) {
+        if (!items || items.length === 0) return;
+        const topItem = items[0];
+        const newTopId = topItem?.track?.spotifyId || '';
+
+        // If top item is different, update DOM
+        if (newTopId && newTopId !== lastHistoryTopTrackId) {
+            lastHistoryTopTrackId = newTopId;
+            const container = document.getElementById('recentHistoryContainer');
+            if (!container) return;
+
+            let html = '<div id="recentHistoryList" style="display: flex; flex-direction: column; gap: 0.8rem;">';
+            for (const item of items) {
+                const trackImg = item.track?.imageUrl || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=100';
+                const artists = (item.track?.artists || []).join(', ');
+                const dateObj = new Date(item.playedAt);
+                const dateStr = dateObj.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' }) + ' ' + dateObj.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+
+                html += `
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.6rem; border-radius: var(--radius-sm); background: rgba(255,255,255,0.02);">
+                        <div style="display: flex; align-items: center; gap: 0.8rem;">
+                            <img src="${trackImg}" alt="${item.track?.name || ''}" style="width: 40px; height: 40px; border-radius: 6px; object-fit: cover;" />
+                            <div>
+                                <div style="font-weight: 600; font-size: 0.9rem;">${item.track?.name || ''}</div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">${artists}</div>
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 0.7rem; color: var(--text-muted);">${dateStr}</div>
+                            ${item.track?.previewUrl ? `<button onclick="playPreview('${item.track.previewUrl}', '${item.track.name}', '${artists}', '${trackImg}')" style="background: none; border: none; cursor: pointer; color: var(--spotify-green); font-size: 0.9rem;">▶</button>` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            html += '</div>';
+            container.innerHTML = html;
+        }
+    }
+
+    // Poll live status and history from server every 5 seconds
     async function checkLivePlayback() {
         try {
             const res = await fetch('/profile/current-live?userId=@(Model.User?.Id)');
             if (!res.ok) return;
-            const data = await res.json();
+            const resData = await res.json();
+            const data = resData.current;
+            const history = resData.history;
+
+            // Update history dynamically if changed
+            if (history) {
+                updateHistoryList(history);
+            }
             
             const card = document.getElementById('nowPlayingCard');
             const eq = document.getElementById('equalizerEl');
@@ -301,6 +354,7 @@
         }
     }
 
-    setInterval(checkLivePlayback, 8000);
+    setInterval(checkLivePlayback, 5000);
 </script>
 }
+

@@ -26,9 +26,9 @@ public class ProfileController : Controller
 
         var targetUserId = userId ?? user?.Id ?? "user-demo";
 
+        var currentlyPlaying = await _api.GetCurrentlyPlayingAsync(token, targetUserId);
         var topTracks = await _api.GetTopTracksAsync(token, targetUserId);
         var history = await _api.GetHistoryAsync(token, targetUserId);
-        var currentlyPlaying = await _api.GetCurrentlyPlayingAsync(token, targetUserId);
 
         var vm = new ProfileViewModel
         {
@@ -50,7 +50,13 @@ public class ProfileController : Controller
         var targetUserId = userId ?? user?.Id ?? "user-demo";
 
         var current = await _api.GetCurrentlyPlayingAsync(token, targetUserId);
-        return Json(current ?? new CurrentlyPlayingViewModel(false, null, null, new List<string>(), null, null, null, null, 0, 0, null));
+        var history = await _api.GetHistoryAsync(token, targetUserId);
+
+        return Json(new
+        {
+            current = current ?? new CurrentlyPlayingViewModel(false, null, null, new List<string>(), null, null, null, null, 0, 0, null),
+            history = history ?? new List<HistoryItemViewModel>()
+        });
     }
 
     [HttpPost("profile/sync")]
